@@ -198,7 +198,7 @@ namespace AssemblerVerticalConstruction
             return ;
         }
 
-        public static void SyncAssemblerFunctions(FactorySystem factorySystem, StorageComponent package, int assemblerId)
+        public static void SyncAssemblerFunctions(FactorySystem factorySystem, Player player, int assemblerId)
         {
             var _this = factorySystem;
             int entityId = _this.assemblerPool[assemblerId].entityId;
@@ -224,13 +224,13 @@ namespace AssemblerVerticalConstruction
                        {
                             if (_this.assemblerPool[assemblerId2].recipeId != _this.assemblerPool[assemblerId].recipeId)
                             {
-                                _this.TakeBackItems_Assembler(package, assemblerId2);
+                                _this.TakeBackItems_Assembler(player, assemblerId2);
                                 _this.assemblerPool[assemblerId2].SetRecipe(_this.assemblerPool[assemblerId].recipeId, _this.factory.entitySignPool);
                             }
                        }
                        else if ( _this.assemblerPool[assemblerId2].recipeId != 0)
                        {
-                            _this.TakeBackItems_Assembler(package, assemblerId2);
+                            _this.TakeBackItems_Assembler(player, assemblerId2);
                             _this.assemblerPool[assemblerId2].SetRecipe(0, _this.factory.entitySignPool);
                        }
                     }
@@ -259,13 +259,13 @@ namespace AssemblerVerticalConstruction
                         {
                             if ( _this.assemblerPool[assemblerId3].recipeId != _this.assemblerPool[assemblerId].recipeId)
                             {
-                                _this.TakeBackItems_Assembler(package, assemblerId3);
+                                _this.TakeBackItems_Assembler(player, assemblerId3);
                                 _this.assemblerPool[assemblerId3].SetRecipe(_this.assemblerPool[assemblerId].recipeId, _this.factory.entitySignPool);
                             }
                         }
                         else if (_this.assemblerPool[assemblerId3].recipeId != 0)
                         {
-                            _this.TakeBackItems_Assembler(package, assemblerId3);
+                            _this.TakeBackItems_Assembler(player, assemblerId3);
                             _this.assemblerPool[assemblerId3].SetRecipe(0, _this.factory.entitySignPool);
                         }
                     }
@@ -290,7 +290,7 @@ namespace AssemblerVerticalConstruction
             {
                 return;
             }
-            SyncAssemblerFunctions(__instance.factorySystem, __instance.player.package, __instance.assemblerId);
+            SyncAssemblerFunctions(__instance.factorySystem, __instance.player, __instance.assemblerId);
         }
 
         [HarmonyPostfix, HarmonyPatch(typeof(UIAssemblerWindow), "OnRecipePickerReturn")]
@@ -305,7 +305,7 @@ namespace AssemblerVerticalConstruction
             {
                 return;
             }
-            SyncAssemblerFunctions(__instance.factorySystem, __instance.player.package, __instance.assemblerId);
+            SyncAssemblerFunctions(__instance.factorySystem, __instance.player, __instance.assemblerId);
         }
 
         [HarmonyPostfix, HarmonyPatch(typeof(PlanetFactory), "PasteEntitySetting")]
@@ -322,7 +322,7 @@ namespace AssemblerVerticalConstruction
                 ItemProto itemProto = LDB.items.Select((int)__instance.entityPool[entityId].protoId);
                 if (itemProto != null && itemProto.prefabDesc != null)
                 {
-                    SyncAssemblerFunctions(__instance.factorySystem, __instance.gameData.mainPlayer.package, assemblerId);
+                    SyncAssemblerFunctions(__instance.factorySystem, __instance.gameData.mainPlayer, assemblerId);
                 }
             }
             
