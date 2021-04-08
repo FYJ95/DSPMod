@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using UnityEngine;
 using BepInEx;
 
@@ -39,7 +38,6 @@ namespace AssemblerVerticalConstruction
          public void SetAssemblerInsertTarget(PlanetFactory __instance, int assemblerId, int nextEntityId)
         {
             
-            //MyLogSource.LogInfo(assemblerId+ " "+nextEntityId);
             var index = __instance.factorySystem.factory.index;
             if (index >= assemblerNextIds.Length)
             {

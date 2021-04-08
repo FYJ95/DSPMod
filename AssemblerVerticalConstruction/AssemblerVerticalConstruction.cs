@@ -7,18 +7,36 @@ using HarmonyLib;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Deployment.Internal;
+using System.Collections.Generic;
 
 namespace AssemblerVerticalConstruction
 {
-    [BepInPlugin("bifrom.com.DSP.AssemblerVerticalConstruction", "[戴森球计划] 制造厂的垂直建造 by 丰有珏", "1.0.5")]
+    [BepInPlugin("bifrom.com.DSP.AssemblerVerticalConstruction", "[戴森球计划] 制造厂的垂直建造 by 丰有珏", "1.0.6")]
     // 限制只有戴森球计划可以使用当前插件
     [BepInProcess("DSPGAME.exe")]
 
   
+    public class AssemblerVerticalConstructionConfig
+    {
+        public int ID = 0;
+        public Vector3 LapJoint;
+        public float ColliderDataOffset;
+        public AssemblerVerticalConstructionConfig(int id, Vector3 lapJoint, float colliderDataOffset)
+        {
+            this.ID = id;
+            this.LapJoint = lapJoint;
+            this.ColliderDataOffset = colliderDataOffset;
+        }
+    }
+
     public class AssemblerVerticalConstruction : BaseUnityPlugin
     {
         public static ConfigEntry<bool> IsResetNextIds;
+        public static ConfigEntry<string> AssemblerVerticalConstructionJson;
+        public static List<AssemblerVerticalConstructionConfig> AssemblerVerticalConstructionConfigs = new List<AssemblerVerticalConstructionConfig>();
         public static AssemblerComponentEx assemblerComponentEx = new AssemblerComponentEx();
+        public static BepInEx.Logging.ManualLogSource mylog = BepInEx.Logging.Logger.CreateLogSource("AssemblerVerticalConstruction");
         ~AssemblerVerticalConstruction()
         {
             if (IsResetNextIds.Value == true)
@@ -27,9 +45,35 @@ namespace AssemblerVerticalConstruction
                 Config.Save();
             }
         }
+
+        public string AssemblerVerticalConstructionConfigsToString()
+        {
+            string ret = "\n";
+            for (int i = 0; i < AssemblerVerticalConstructionConfigs.Count; i++)
+            {
+                if (ret != "\n")
+                {
+                    ret += ",";
+                }
+                ret += AssemblerVerticalConstructionConfigs[i].ID + "|";
+                ret += AssemblerVerticalConstructionConfigs[i].LapJoint.ToString()+"|";
+                ret += AssemblerVerticalConstructionConfigs[i].ColliderDataOffset;
+            }
+            return ret;
+        }
+
         void Start()
         {
+            AssemblerVerticalConstructionConfigs.Add(new AssemblerVerticalConstructionConfig(2303, new Vector3(0, 5.1f, 0), -3));
+            AssemblerVerticalConstructionConfigs.Add(new AssemblerVerticalConstructionConfig(2304, new Vector3(0, 5.1f, 0), -3));
+            AssemblerVerticalConstructionConfigs.Add(new AssemblerVerticalConstructionConfig(2305, new Vector3(0, 5.1f, 0), -3));
+            AssemblerVerticalConstructionConfigs.Add(new AssemblerVerticalConstructionConfig(2302, new Vector3(0, 4.3f, 0), -3));
+            AssemblerVerticalConstructionConfigs.Add(new AssemblerVerticalConstructionConfig(2309, new Vector3(0, 7.0f, 0), -3));
+            AssemblerVerticalConstructionConfigs.Add(new AssemblerVerticalConstructionConfig(2308, new Vector3(0, 16.0f, 0), -3));
+                 
             IsResetNextIds = Config.Bind("config", "IsResetNextIds", false, "在加载存档的时候重新计算建筑物的叠加关系 true需要重新计算 重新计算的时候会有一定的卡顿");
+            AssemblerVerticalConstructionJson = Config.Bind("config", "AssemblerVerticalConstructionJson", AssemblerVerticalConstructionConfigsToString(), "建筑间隔信息 ");
+
             Harmony.CreateAndPatchAll(typeof(AssemblerVerticalConstruction));
         }
 
@@ -94,7 +138,7 @@ namespace AssemblerVerticalConstruction
         private static bool PreloadPatch(ItemProto __instance, int _index)
          {
             ModelProto modelProto = LDB.models.modelArray[__instance.ModelIndex];
-            if (modelProto != null)
+            if (modelProto != null && modelProto.prefabDesc != null && modelProto.prefabDesc.isAssembler == true)
              {
                 Vector3 lapJoint = Vector3.zero;
                 if (__instance.ID == 2303 || __instance.ID == 2304 || __instance.ID == 2305)
@@ -198,7 +242,7 @@ namespace AssemblerVerticalConstruction
             return ;
         }
 
-        public static void SyncAssemblerFunctions(FactorySystem factorySystem, StorageComponent package, int assemblerId)
+        public static void SyncAssemblerFunctions(FactorySystem factorySystem, Player player, int assemblerId)
         {
             var _this = factorySystem;
             int entityId = _this.assemblerPool[assemblerId].entityId;
@@ -224,13 +268,13 @@ namespace AssemblerVerticalConstruction
                        {
                             if (_this.assemblerPool[assemblerId2].recipeId != _this.assemblerPool[assemblerId].recipeId)
                             {
-                                _this.TakeBackItems_Assembler(package, assemblerId2);
+                                _this.TakeBackItems_Assembler(player, assemblerId2);
                                 _this.assemblerPool[assemblerId2].SetRecipe(_this.assemblerPool[assemblerId].recipeId, _this.factory.entitySignPool);
                             }
                        }
                        else if ( _this.assemblerPool[assemblerId2].recipeId != 0)
                        {
-                            _this.TakeBackItems_Assembler(package, assemblerId2);
+                            _this.TakeBackItems_Assembler(player, assemblerId2);
                             _this.assemblerPool[assemblerId2].SetRecipe(0, _this.factory.entitySignPool);
                        }
                     }
@@ -259,13 +303,13 @@ namespace AssemblerVerticalConstruction
                         {
                             if ( _this.assemblerPool[assemblerId3].recipeId != _this.assemblerPool[assemblerId].recipeId)
                             {
-                                _this.TakeBackItems_Assembler(package, assemblerId3);
+                                _this.TakeBackItems_Assembler(_this.factory.gameData.mainPlayer, assemblerId3);
                                 _this.assemblerPool[assemblerId3].SetRecipe(_this.assemblerPool[assemblerId].recipeId, _this.factory.entitySignPool);
                             }
                         }
                         else if (_this.assemblerPool[assemblerId3].recipeId != 0)
                         {
-                            _this.TakeBackItems_Assembler(package, assemblerId3);
+                            _this.TakeBackItems_Assembler(_this.factory.gameData.mainPlayer, assemblerId3);
                             _this.assemblerPool[assemblerId3].SetRecipe(0, _this.factory.entitySignPool);
                         }
                     }
@@ -290,7 +334,7 @@ namespace AssemblerVerticalConstruction
             {
                 return;
             }
-            SyncAssemblerFunctions(__instance.factorySystem, __instance.player.package, __instance.assemblerId);
+            SyncAssemblerFunctions(__instance.factorySystem, __instance.player, __instance.assemblerId);
         }
 
         [HarmonyPostfix, HarmonyPatch(typeof(UIAssemblerWindow), "OnRecipePickerReturn")]
@@ -305,7 +349,7 @@ namespace AssemblerVerticalConstruction
             {
                 return;
             }
-            SyncAssemblerFunctions(__instance.factorySystem, __instance.player.package, __instance.assemblerId);
+            SyncAssemblerFunctions(__instance.factorySystem, __instance.player, __instance.assemblerId);
         }
 
         [HarmonyPostfix, HarmonyPatch(typeof(PlanetFactory), "PasteEntitySetting")]
@@ -322,7 +366,7 @@ namespace AssemblerVerticalConstruction
                 ItemProto itemProto = LDB.items.Select((int)__instance.entityPool[entityId].protoId);
                 if (itemProto != null && itemProto.prefabDesc != null)
                 {
-                    SyncAssemblerFunctions(__instance.factorySystem, __instance.gameData.mainPlayer.package, assemblerId);
+                    SyncAssemblerFunctions(__instance.factorySystem, __instance.gameData.mainPlayer, assemblerId);
                 }
             }
             
@@ -486,5 +530,116 @@ namespace AssemblerVerticalConstruction
             }
             return true;
         }
+
+
+        public static bool ObjectIsAssembler(PlayerAction_Build __instance, int objId)
+        {
+            if (objId == 0)
+            {
+                return false;
+            }
+            if (objId > 0)
+            {
+                ItemProto itemProto = LDB.items.Select((int)__instance.player.factory.entityPool[objId].protoId);
+                return itemProto != null && itemProto.prefabDesc.isAssembler;
+            }
+            ItemProto itemProto2 = LDB.items.Select((int)__instance.player.factory.prebuildPool[-objId].protoId);
+            return itemProto2 != null && itemProto2.prefabDesc.isAssembler;
+        }
+
+       // [HarmonyPrefix, HarmonyPatch(typeof(PlayerAction_Build), "CheckBuildConditions")]
+        //public static bool CheckBuildConditionsPatch(PlayerAction_Build __instance, ref bool __result)
+        //{
+        //    GameHistoryData history = GameMain.history;
+        //    bool flag = true;
+        //    for (int i = 0; i < __instance.buildPreviews.Count; i++)
+        //    {
+        //        BuildPreview buildPreview = __instance.buildPreviews[i];
+        //        bool isBelt = buildPreview.desc.isBelt;
+        //        bool isInserter = buildPreview.desc.isInserter;
+        //        bool flag2 = false;
+        //        if (buildPreview.condition == EBuildCondition.Ok)
+        //        {
+        //            Vector3 vector = __instance.previewPose.position + __instance.previewPose.rotation * buildPreview.lpos;
+        //            Vector3 vector2 = __instance.previewPose.position + __instance.previewPose.rotation * buildPreview.lpos2;
+        //            if (vector.sqrMagnitude < 1f)
+        //            {
+        //                return true;
+        //            }
+        //            else
+        //            {
+        //                /*if (buildPreview.coverObjId == 0 || buildPreview.willCover)
+        //                {
+        //                    int id = buildPreview.item.ID;
+        //                    int num = 1;
+        //                    if (__instance.tmpInhandId == id && __instance.tmpInhandCount > 0)
+        //                    {
+        //                        num = 1;
+        //                        __instance.tmpInhandCount--;
+        //                    }
+        //                    else
+        //                    {
+        //                        __instance.tmpPackage.TakeTailItems(ref id, ref num, false);
+        //                    }
+        //                    if (num == 0)
+        //                    {
+        //                        return true;
+        //                    }
+        //                }*/
+        //                if (buildPreview.desc.isAssembler && buildPreview.desc.hasBuildCollider)
+        //                {
+        //                    Pose pose;
+        //                    pose.position = __instance.previewPose.position + __instance.previewPose.rotation * buildPreview.lpos;
+        //                    pose.rotation = __instance.previewPose.rotation * buildPreview.lrot;
+        //                    ColliderData[] buildColliders = buildPreview.desc.buildColliders;
+        //                    for (int num57 = 0; num57 < buildColliders.Length; num57++)
+        //                    {
+        //                        ColliderData colliderData = buildPreview.desc.buildColliders[num57];
+        //                        colliderData.pos = pose.position + pose.rotation * colliderData.pos;
+        //                        colliderData.q = pose.rotation * colliderData.q;
+
+        //                        colliderData.pos.y = colliderData.pos.y - 3.0f;
+        //                        colliderData.ext.y = colliderData.ext.y - 3.0f;
+        //                        //mylog.LogInfo("目标是建造类建筑没错了:" + buildPreview.item.name);
+        //                        int buildMode = buildPreview.item.BuildMode;
+        //                        bool flag4 = buildMode == 1;
+        //                        if (flag4)
+        //                        {
+        //                            int layermask = 165888;
+        //                            if (Physics.CheckBox(colliderData.pos, colliderData.ext, colliderData.q, layermask, QueryTriggerInteraction.Collide))
+        //                            {
+        //                                if (ObjectIsAssembler(__instance, buildPreview.inputObjId))
+        //                                {
+                                          
+        //                                    //mylog.LogInfo("目标是建造类建筑没错了:" + buildPreview.item.name);
+        //                                    __result = true;
+        //                                }
+        //                                else
+        //                                {
+        //                                    __result = false;
+        //                                }
+                                        
+        //                                // 如果是建造类建筑则我这边处理
+        //                                //mylog.LogInfo("是建造类建筑没错了:" + buildPreview.item.name);
+        //                                //buildPreview.condition = EBuildCondition.Collide;
+        //                                return true;
+        //                            }
+        //                            else
+        //                            {
+        //                                if (ObjectIsAssembler(__instance, buildPreview.inputObjId))
+        //                                {
+        //                                    __result = true;
+        //                                    return false;
+        //                                }
+        //                                return true;
+        //                            }
+        //                        }
+        //                    }
+        //                }
+        //            }
+        //        }
+        //    }
+        //    return true;
+        //}
     }
 }
